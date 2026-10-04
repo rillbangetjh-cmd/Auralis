@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Extract Auralis
@@ -25,26 +25,18 @@ jobs:
       - name: Install Gradle
         run: |
           DISTRIBUTION_URL=$(grep '^distributionUrl=' extracted/gradle/wrapper/gradle-wrapper.properties | cut -d'=' -f2- | sed 's/\\//g')
-
-          echo "Gradle URL:"
-          echo "$DISTRIBUTION_URL"
-
           mkdir -p "$HOME/gradle"
-
           curl -L "$DISTRIBUTION_URL" -o "$HOME/gradle/gradle.zip"
-
           unzip -q "$HOME/gradle/gradle.zip" -d "$HOME/gradle"
-
           GRADLE_HOME=$(find "$HOME/gradle" -maxdepth 1 -type d -name "gradle-*" | head -1)
-
-          echo "Gradle home:"
-          echo "$GRADLE_HOME"
-
           echo "$GRADLE_HOME/bin" >> "$GITHUB_PATH"
 
-      - name: Check Gradle
+      - name: Update KSP
         run: |
-          gradle --version
+          sed -i 's/googleDevtoolsKsp = "2.3.5"/googleDevtoolsKsp = "2.3.6"/' extracted/gradle/libs.versions.toml
+
+          echo "KSP version:"
+          grep googleDevtoolsKsp extracted/gradle/libs.versions.toml
 
       - name: Build APK
         working-directory: extracted
@@ -53,7 +45,6 @@ jobs:
 
       - name: Find APK
         run: |
-          echo "=== APK ==="
           find extracted -type f -name "*.apk" -print
 
       - name: Upload APK
