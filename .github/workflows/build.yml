@@ -1,0 +1,74 @@
+name: Build Auralis
+
+on:
+workflow_dispatch:
+
+jobs:
+inspect-and-build:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Check ZIP
+    run: |
+      ls -lah
+      unzip -l auralis.zip | head -100
+
+  - name: Extract project
+    run: |
+      mkdir extracted
+      unzip -q auralis.zip -d extracted
+      echo "=== Extracted files ==="
+      find extracted -maxdepth 3 -type f | head -200
+
+  - name: Detect Android project
+    run: |
+      if find extracted -name "gradlew" -o -name "settings.gradle" -o -name "settings.gradle.kts" | grep -q .; then
+        echo "ANDROID_PROJECT=true" >> "$GITHUB_ENV"
+        echo "Android/Gradle project detected."
+      else
+        echo "ANDROID_PROJECT=false" >> "$GITHUB_ENV"
+        echo "Android Gradle project not detected."
+      fi
+
+  - name: Setup Java
+    if: env.ANDROID_PROJECT == 'true'
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
+
+  - name: Setup Android SDK
+    if: env.ANDROID_PROJECT == 'true'
+    uses: android-actions/setup-android@v3
+
+  - name: Find Gradle project
+    if: env.ANDROID_PROJECT == 'true'
+    run: |
+      find extracted -name "gradlew" -type f -print
+
+  - name: Build APK
+    if: env.ANDROID_PROJECT == 'true'
+    run: |
+      GRADLEW=$(find extracted -name "gradlew" -type f | head -1)
+      chmod +x "$GRADLEW"
+      cd "$(dirname "$GRADLEW")"
+      ./gradlew assembleDebug --stacktrace
+
+  - name: Upload APK
+    if: env.ANDROID_PROJECT == 'true'
+    uses: actions/upload-artifact@v4
+    with:
+      name: Auralis-debug
+      path: |
+        extracted/**/build/outputs/apk/**/*.apk
+        extracted/**/build/outputs/apk/*.apk
+
+  - name: Upload inspection result
+    if: env.ANDROID_PROJECT != 'true'
+    uses: actions/upload-artifact@v4
+    with:
+      name: Auralis-project-inspection
+      path: extracted/
