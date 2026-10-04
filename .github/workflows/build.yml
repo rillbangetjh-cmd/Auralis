@@ -22,39 +22,42 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Find Gradle project
+      - name: Install Gradle
         run: |
-          echo "Searching for Gradle wrapper..."
+          DISTRIBUTION_URL=$(grep '^distributionUrl=' extracted/gradle/wrapper/gradle-wrapper.properties | cut -d'=' -f2- | sed 's/\\//g')
 
-          GRADLEW=$(find extracted -name "gradlew" -type f | head -1)
+          echo "Gradle URL:"
+          echo "$DISTRIBUTION_URL"
 
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew tidak ditemukan."
-            echo "Isi ZIP:"
-            find extracted -maxdepth 5 -type f | sort
-            exit 1
-          fi
+          mkdir -p "$HOME/gradle"
 
-          echo "Gradle wrapper ditemukan:"
-          echo "$GRADLEW"
+          curl -L "$DISTRIBUTION_URL" -o "$HOME/gradle/gradle.zip"
 
-          PROJECT_DIR=$(dirname "$GRADLEW")
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          unzip -q "$HOME/gradle/gradle.zip" -d "$HOME/gradle"
 
-          chmod +x "$GRADLEW"
+          GRADLE_HOME=$(find "$HOME/gradle" -maxdepth 1 -type d -name "gradle-*" | head -1)
 
-      - name: Build Debug APK
+          echo "Gradle home:"
+          echo "$GRADLE_HOME"
+
+          echo "$GRADLE_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Check Gradle
         run: |
-          cd "$PROJECT_DIR"
-          ./gradlew assembleDebug --stacktrace
+          gradle --version
+
+      - name: Build APK
+        working-directory: extracted
+        run: |
+          gradle assembleDebug --stacktrace
 
       - name: Find APK
         run: |
-          echo "=== APK FILES ==="
-          find "$PROJECT_DIR" -type f -name "*.apk" -print
+          echo "=== APK ==="
+          find extracted -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Auralis-APK
-          path: "**/build/outputs/apk/**/*.apk"
+          path: "extracted/**/build/outputs/apk/**/*.apk"
