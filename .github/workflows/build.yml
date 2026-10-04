@@ -1,14 +1,14 @@
-name: Inspect Auralis
+name: Build Auralis APK
 
 on:
   workflow_dispatch:
 
 jobs:
-  inspect:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Extract Auralis
@@ -16,30 +16,26 @@ jobs:
           mkdir extracted
           unzip -q auralis.zip -d extracted
 
-      - name: Show project files
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle executable
         run: |
-          echo "=== FILES ==="
-          find extracted -maxdepth 4 -type f | sort | head -300
+          chmod +x extracted/gradlew
 
-      - name: Check Android project
+      - name: Build Debug APK
+        working-directory: extracted
         run: |
-          echo "=== ANDROID FILES ==="
+          ./gradlew assembleDebug --stacktrace
 
-          find extracted -type f \( \
-            -name "gradlew" -o \
-            -name "settings.gradle" -o \
-            -name "settings.gradle.kts" -o \
-            -name "build.gradle" -o \
-            -name "build.gradle.kts" \
-          \) -print
-
-      - name: Check web project
-        run: |
-          echo "=== WEB FILES ==="
-
-          find extracted -type f \( \
-            -name "package.json" -o \
-            -name "vite.config.js" -o \
-            -name "vite.config.ts" -o \
-            -name "index.html" \
-          \) -print
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auralis-APK
+          path: extracted/app/build/outputs/apk/debug/*.apk
