@@ -22,24 +22,39 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Check Android SDK
+      - name: Find Gradle project
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME"
-          ls "$ANDROID_HOME/platforms" || true
-          ls "$ANDROID_HOME/build-tools" || true
+          echo "Searching for Gradle wrapper..."
 
-      - name: Make Gradle executable
-        run: |
-          chmod +x extracted/gradlew
+          GRADLEW=$(find extracted -name "gradlew" -type f | head -1)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew tidak ditemukan."
+            echo "Isi ZIP:"
+            find extracted -maxdepth 5 -type f | sort
+            exit 1
+          fi
+
+          echo "Gradle wrapper ditemukan:"
+          echo "$GRADLEW"
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          chmod +x "$GRADLEW"
 
       - name: Build Debug APK
-        working-directory: extracted
         run: |
+          cd "$PROJECT_DIR"
           ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        run: |
+          echo "=== APK FILES ==="
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Auralis-APK
-          path: extracted/app/build/outputs/apk/debug/*.apk
+          path: "**/build/outputs/apk/**/*.apk"
