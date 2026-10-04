@@ -1,11 +1,45 @@
-name: Test Auralis
+name: Inspect Auralis
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  inspect:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Test
-        run: echo "GitHub Actions Auralis berhasil!"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract Auralis
+        run: |
+          mkdir extracted
+          unzip -q auralis.zip -d extracted
+
+      - name: Show project files
+        run: |
+          echo "=== FILES ==="
+          find extracted -maxdepth 4 -type f | sort | head -300
+
+      - name: Check Android project
+        run: |
+          echo "=== ANDROID FILES ==="
+
+          find extracted -type f \( \
+            -name "gradlew" -o \
+            -name "settings.gradle" -o \
+            -name "settings.gradle.kts" -o \
+            -name "build.gradle" -o \
+            -name "build.gradle.kts" \
+          \) -print
+
+      - name: Check web project
+        run: |
+          echo "=== WEB FILES ==="
+
+          find extracted -type f \( \
+            -name "package.json" -o \
+            -name "vite.config.js" -o \
+            -name "vite.config.ts" -o \
+            -name "index.html" \
+          \) -print
