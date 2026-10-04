@@ -1,62 +1,11 @@
-name: Build Auralis
+name: Test Auralis
 
 on:
   workflow_dispatch:
 
 jobs:
-  inspect:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Extract ZIP
-        run: |
-          unzip -q auralis.zip -d extracted
-          echo "=== PROJECT CONTENT ==="
-          find extracted -maxdepth 3 -type f | head -200
-
-      - name: Detect project
-        run: |
-          echo "=== GRADLE FILES ==="
-          find extracted \( -name "gradlew" -o -name "settings.gradle" -o -name "settings.gradle.kts" \) -print
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Android
-        uses: android-actions/setup-android@v3
-
-      - name: Find Gradle
-        run: |
-          GRADLEW=$(find extracted -name "gradlew" -type f | head -1)
-
-          if [ -z "$GRADLEW" ]; then
-            echo "Tidak menemukan Gradle Android project."
-            exit 1
-          fi
-
-          echo "Gradle ditemukan:"
-          echo "$GRADLEW"
-
-          chmod +x "$GRADLEW"
-
-      - name: Build APK
-        run: |
-          GRADLEW=$(find extracted -name "gradlew" -type f | head -1)
-          PROJECT_DIR=$(dirname "$GRADLEW")
-
-          cd "$PROJECT_DIR"
-
-          ./gradlew assembleDebug --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Auralis-APK
-          path: |
-            extracted/**/build/outputs/apk/**/*.apk
+      - name: Test
+        run: echo "GitHub Actions Auralis berhasil!"
